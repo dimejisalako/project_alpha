@@ -1,0 +1,44 @@
+# This is the "scheduler" piece of the pipeline: it runs generate.py on
+# a cron schedule and commits the updated SQLite file back to the repo,
+# so the data source itself lives in git history and every refresh is
+# visible as a commit. That's the automation-as-code point of using
+# GitHub Actions instead of a local cron job / Task Scheduler entry.
+
+name: Refresh mock market data
+
+on:
+  schedule:
+    # Every hour, on the hour (matches config.yaml refresh_interval: 1h).
+    # GitHub Actions cron can be delayed under high load and won't run
+    # more often than every 5 minutes -- fine for this demo cadence.
+    - cron: "0 * * * *"
+  workflow_dispatch: {}   # manual "Run workflow" button -- use this for live demos
+
+permissions:
+  contents: write   # needed to commit the refreshed database back to the repo
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run generator
+        run: python generate.py --config config.yaml
+
+      - name: Commit updated data
+        run: |
+          git config user.name "market-data-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add data/market_data.db
+          git diff --cached --quiet || git commit -m "Automated data refresh ($(date -u +'%Y-%m-%dT%H:%M:%SZ'))"
+          git push

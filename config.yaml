@@ -1,0 +1,29 @@
+# Configuration for the mock market-data generator.
+# Change `refresh_interval` and the GitHub Actions cron schedule
+# (.github/workflows/generate.yml) together -- the workflow's cron is
+# what actually controls cadence; this value is read by generate.py
+# purely for logging/display so the two stay in sync and you have one
+# obvious place documenting "how often does this update."
+
+refresh_interval: 1h   # one of: 1h, 6h, 24h
+
+tickers:
+  - AAPL
+  - MSFT
+  - GOOGL
+  - AMZN
+  - TSLA
+  - NVDA
+  - META
+
+generator:
+  seed_days: 180          # how many days of history to backfill on first run
+  starting_price_range: [50, 400]
+  daily_drift: 0.0003      # average daily return (small positive drift)
+  daily_volatility: 0.018  # daily return std dev
+  random_seed: 42          # fixed seed -> reproducible historical backfill
+
+storage:
+  type: sqlite
+  path: data/market_data.db
+  table: ohlcv
